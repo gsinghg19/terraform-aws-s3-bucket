@@ -1,0 +1,17 @@
+{
+    "name": "terraform-aws-s3-bucket",
+    "private": true,
+    "version": "1.0.0",
+    "description": "TypeScript Lambda utilities for terraform-aws-s3-bucket",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "watch": "tsc -w -p tsconfig.json",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit -p tsconfig.json"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.145",
+        "@types/node": "^22.13.10",
+        "typescript": "^5.8.2"
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "strict": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "rootDir": "lambda",
+        "outDir": "dist/lambda",
+        "types": [
+            "node",
+            "aws-lambda"
+        ]
+    },
+    "include": [
+        "lambda/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        ".terraform"
+    ]
+}
