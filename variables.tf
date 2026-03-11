@@ -42,3 +42,15 @@ variable "vpc_tags" {
     Environment = "dev"
   }
 }
+
+variable "aws_access_key_id" {
+  description = "AWS access key ID used by the provider"
+  type        = string
+  sensitive   = true
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS secret access key used by the provider"
+  type        = string
+  sensitive   = true
+}
