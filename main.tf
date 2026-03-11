@@ -50,3 +50,18 @@ module "website_s3_bucket" {
   }
 }
 
+
+module "image_validator" {
+  source = "./modules/lambda-image-validator"
+
+  function_name = "image-validator"
+  source_dir    = "${path.root}/lambda/image-validator/src"
+
+  s3_bucket_arn = module.website_s3_bucket.arn
+  s3_bucket_id  = module.website_s3_bucket.name
+
+  environment_variables = {
+    NODE_ENV = "production"
+  }
+}
+
