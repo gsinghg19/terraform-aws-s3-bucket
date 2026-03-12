@@ -1,272 +1,190 @@
 # terraform-aws-s3-bucket
-Terraform Module Tutorial: AWS S3 Static Website
 
-This project walks you through creating a reusable Terraform module that provisions an AWS S3 bucket configured to host a static website.
+Terraform project that provisions:
 
-By the end, you will:
+- A VPC and networking stack
+- Two EC2 instances
+- A public S3 static website bucket
+- A private S3 image storage bucket
+- A Lambda function that converts uploaded `.webp` images to `.jpg`
 
-Create a custom Terraform module
+## Architecture Diagram
 
-Provision a public S3 static website bucket
+```mermaid
+flowchart TD
+  U[User Browser]
 
-Upload website files
+  subgraph TF[Terraform Root Stack]
+    VPCM[module.vpc]
+    EC2M[module.ec2_instances]
+    WEBM[module.website_s3_bucket]
+    IMGM[module.image_s3_bucket]
+    LAMM[module.image_validator]
+  end
 
-Access the website in a browser
+  subgraph AWS[AWS us-west-2]
+    VPC[VPC + Public/Private Subnets]
+    EC2[EC2 Cluster x2]
+    WEB[(S3 Website Bucket)]
+    IMG[(S3 Image Output Bucket)]
+    LAM[Lambda image-validator]
+  end
 
-Clean up all resources safely
+  VPCM --> VPC
+  EC2M --> EC2
+  WEBM --> WEB
+  IMGM --> IMG
+  LAMM --> LAM
 
-Prerequisites
+  VPC --> EC2
+  U -->|HTTP static site| WEB
+  WEB -->|s3:ObjectCreated:*.webp| LAM
+  LAM -->|GetObject .webp| WEB
+  LAM -->|PutObject .jpg| IMG
+```
 
-Before starting, make sure you have:
+## What This Repository Contains
 
-An AWS account
+### Root stack
 
-AWS credentials configured (via AWS CLI default profile)
+The root Terraform configuration wires together all modules in [main.tf](main.tf).
 
-AWS CLI installed
+### Local modules
 
-Terraform CLI installed
+- `modules/aws-s3-bucket-static-websites`: Public S3 static website bucket
+- `modules/aws-s3-bucket-image-storage`: Private S3 image storage bucket
+- `modules/lambda-image-validator`: Lambda packaging, IAM role/policies, and S3 trigger
 
-Verify installations:
+### Lambda source
 
-aws --version
+- `lambda/image-validator/src/handler.ts`: Handles S3 object-create events, validates `.webp`, converts to JPEG with `sharp`, and uploads the output image
+
+### Terraform test assets
+
+- `tests/website.tftest.hcl`: Terraform test that validates helper/module behavior
+- `tests/helpers/s3-website-helper`: Test helper module used by `terraform test`
+
+## Prerequisites
+
+- AWS account
+- Terraform CLI (1.2+; project pins `~> 1.2`)
+- AWS CLI
+- Node.js and npm (for Lambda TypeScript utilities)
+
+Verify tooling:
+
+```bash
 terraform --version
-Project Structure
+aws --version
+node --version
+npm --version
+```
 
-After setup, your project should look like this:
+## Configuration
 
-.
-├── main.tf
-├── variables.tf
-├── outputs.tf
-├── modules/
-│   └── aws-s3-static-website-bucket/
-│       ├── main.tf
-│       ├── variables.tf
-│       ├── outputs.tf
-│       ├── README.md
-│       ├── LICENSE
-│       └── www/
-│           ├── index.html
-│           └── error.html
-Step 1: Initialize Your Project
+The AWS provider in [main.tf](main.tf) reads these Terraform variables:
 
-If starting fresh:
+- `aws_access_key_id`
+- `aws_secret_access_key`
 
-mkdir terraform-s3-website
-cd terraform-s3-website
+You can export them via [env.dev](env.dev):
 
-Initialize Terraform:
+```bash
+source env.dev
+```
 
+This script maps your shell AWS credentials to Terraform variables:
+
+- `TF_VAR_aws_access_key_id`
+- `TF_VAR_aws_secret_access_key`
+
+## Deploy
+
+```bash
 terraform init
-Step 2: Create the Module Directory
-
-Create your module folder:
-
-mkdir -p modules/aws-s3-static-website-bucket/www
-Step 3: Create Module Files
-
-Inside:
-
-modules/aws-s3-static-website-bucket/
-
-Create the following files:
-
-main.tf
-
-variables.tf
-
-outputs.tf
-
-README.md
-
-LICENSE
-
-Step 4: Add Module Code
-modules/aws-s3-static-website-bucket/main.tf
-resource "aws_s3_bucket" "s3_bucket" {
-  bucket = var.bucket_name
-  tags   = var.tags
-}
-
-resource "aws_s3_bucket_website_configuration" "s3_bucket" {
-  bucket = aws_s3_bucket.s3_bucket.id
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "error.html"
-  }
-}
-
-resource "aws_s3_bucket_acl" "s3_bucket" {
-  bucket = aws_s3_bucket.s3_bucket.id
-  acl    = "public-read"
-}
-
-resource "aws_s3_bucket_policy" "s3_bucket" {
-  bucket = aws_s3_bucket.s3_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Sid       = "PublicReadGetObject"
-      Effect    = "Allow"
-      Principal = "*"
-      Action    = "s3:GetObject"
-      Resource = [
-        aws_s3_bucket.s3_bucket.arn,
-        "${aws_s3_bucket.s3_bucket.arn}/*"
-      ]
-    }]
-  })
-}
-modules/aws-s3-static-website-bucket/variables.tf
-variable "bucket_name" {
-  description = "Name of the S3 bucket. Must be globally unique."
-  type        = string
-}
-
-variable "tags" {
-  description = "Tags for the bucket."
-  type        = map(string)
-  default     = {}
-}
-modules/aws-s3-static-website-bucket/outputs.tf
-output "arn" {
-  description = "ARN of the bucket"
-  value       = aws_s3_bucket.s3_bucket.arn
-}
-
-output "name" {
-  description = "Name of the bucket"
-  value       = aws_s3_bucket.s3_bucket.id
-}
-
-output "domain" {
-  description = "Website domain"
-  value       = aws_s3_bucket_website_configuration.s3_bucket.website_domain
-}
-Step 5: Create Sample Website Files
-
-Inside:
-
-modules/aws-s3-static-website-bucket/www/
-
-Create:
-
-index.html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>My Static Website</title>
-</head>
-<body>
-  <h1>Hello from Terraform!</h1>
-</body>
-</html>
-error.html
-<!DOCTYPE html>
-<html>
-<body>
-  <h1>Error - Page Not Found</h1>
-</body>
-</html>
-Step 6: Configure the Root Module
-
-Create or edit main.tf in the root directory:
-
-provider "aws" {
-  region = "us-west-2"
-}
-
-module "website_s3_bucket" {
-  source = "./modules/aws-s3-static-website-bucket"
-
-  bucket_name = "your-unique-bucket-name-12345"
-
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
-  }
-}
-
-⚠️ Replace your-unique-bucket-name-12345 with a globally unique name.
-
-Step 7: Add Root Outputs
-
-Create or edit outputs.tf in the root:
-
-output "website_bucket_name" {
-  value = module.website_s3_bucket.name
-}
-
-output "website_bucket_domain" {
-  value = module.website_s3_bucket.domain
-}
-Step 8: Install and Apply
-
-Initialize:
-
-terraform init
-
-Preview:
-
 terraform plan
-
-Apply:
-
 terraform apply
+```
 
-Type:
+After apply, inspect outputs:
 
-yes
-
-When complete, get your website domain:
-
+```bash
+terraform output
 terraform output website_bucket_domain
-Step 9: Upload Website Files
+terraform output lambda_function_name
+```
 
-Upload your HTML files:
+## Use The Static Website Bucket
 
-aws s3 cp modules/aws-s3-static-website-bucket/www/ \
-  s3://$(terraform output -raw website_bucket_name)/ \
+Upload static assets to the website bucket:
+
+```bash
+aws s3 cp modules/aws-s3-bucket-static-websites/simple-static-website/ \
+  "s3://$(terraform output -raw website_bucket_name)/" \
   --recursive
-Step 10: Visit Your Website
+```
 
-Open in browser:
+Then open the website endpoint returned by:
 
-http://<YOUR_BUCKET_NAME>.s3-website-us-west-2.amazonaws.com
+```bash
+terraform output -raw website_bucket_domain
+```
 
-You should see:
+## Trigger Image Conversion
 
-Hello from Terraform!
-Step 11: Clean Up
+The Lambda trigger is configured on the website bucket for object-create events with `.webp` suffix.
 
-Remove uploaded files:
+Upload a `.webp` file to the website bucket:
 
-aws s3 rm s3://$(terraform output -raw website_bucket_name)/ --recursive
+```bash
+aws s3 cp ./example.webp "s3://$(terraform output -raw website_bucket_name)/example.webp"
+```
 
-Destroy infrastructure:
+If Lambda succeeds, a `.jpg` version is uploaded to the output bucket from `image_bucket_name`.
 
+```bash
+terraform output image_bucket_name
+```
+
+## Tests
+
+### Terraform tests
+
+```bash
+terraform test
+```
+
+### TypeScript checks/build
+
+```bash
+npm install
+npm run typecheck
+npm run build
+```
+
+Note: [lambda/image-validator/src/handler.test.ts](lambda/image-validator/src/handler.test.ts) currently exists but is empty.
+
+## Useful Outputs
+
+Defined in [outputs.tf](outputs.tf):
+
+- `vpc_public_subnets`
+- `ec2_instance_public_ips`
+- `website_bucket_arn`
+- `website_bucket_name`
+- `website_bucket_domain`
+- `image_bucket_arn`
+- `image_bucket_name`
+- `lambda_function_name`
+- `lambda_function_arn`
+
+## Cleanup
+
+```bash
 terraform destroy
+```
 
-Type:
+## Notes
 
-yes
-
-All resources will be deleted.
-
-What You Learned
-
-How to structure a Terraform module
-
-How modules use variables and outputs
-
-How to reference a local module
-
-How to host a static website on S3
-
-How to safely destroy infrastructure
+- Bucket names in [main.tf](main.tf) are currently hardcoded. They must be globally unique in AWS.
+- The npm script `upload:image` in [package.json](package.json) uploads to a hardcoded bucket name.

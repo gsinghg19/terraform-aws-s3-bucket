@@ -70,3 +70,22 @@ resource "aws_lambda_function" "this" {
     variables = var.environment_variables
   }
 }
+
+# --- Allows the automatic trigger of the lambda function ---
+resource "aws_lambda_permission" "s3_invoke" {
+  statement_id  = "AllowS3Invoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.this.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = var.s3_bucket_arn
+}
+
+resource "aws_s3_bucket_notification" "image_upload" {
+  bucket = var.s3_bucket_id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.this.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_suffix       = ".webp"
+  }
+}
