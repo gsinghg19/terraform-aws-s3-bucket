@@ -33,6 +33,16 @@ output "image_bucket_name" {
   value       = module.image_s3_bucket.name
 }
 
+output "pdf_bucket_arn" {
+  description = "ARN of the PDF bucket"
+  value       = module.pdf_s3_bucket.arn
+}
+
+output "pdf_bucket_name" {
+  description = "Name (id) of the PDF bucket"
+  value       = module.pdf_s3_bucket.name
+}
+
 output "lambda_function_name" {
   description = "Name of the image validator Lambda"
   value       = module.image_validator.function_name

@@ -60,6 +60,16 @@ module "image_s3_bucket" {
   }
 }
 
+module "pdf_s3_bucket" {
+  source      = "./modules/aws-s3-bucket-pdf-doc-storage"
+  bucket_name = "guppy-pdf-docs-feb-2026"
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+  }
+}
+
 module "image_validator" {
   source = "./modules/lambda-image-validator"
 
