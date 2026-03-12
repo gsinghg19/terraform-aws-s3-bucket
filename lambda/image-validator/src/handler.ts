@@ -70,10 +70,14 @@ const handler: S3Handler = async (event) => {
 
     console.log(processingFormatMessage);
 
+
+    const outPutBucket = process.env.OUTPUT_S3_BUCKET_ARN;
+    if (!outPutBucket) throw new Error('Error: OUTPUT_S3_BUCKET_ARN environment variable is not set');
+
     const bodyBytes = await getObjectBytes(bucketName, objectKey);
     const convertedToJpeg = await convertToJpeg(bodyBytes);
     const outputKey = getOutputJpegKey(objectKey);
-    await uploadJpeg(bucketName, outputKey, convertedToJpeg);
+    await uploadJpeg(outPutBucket, outputKey, convertedToJpeg);
 };
 
 export default handler;

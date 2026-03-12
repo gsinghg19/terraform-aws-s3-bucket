@@ -44,6 +44,12 @@ variable "s3_bucket_id" {
   default     = ""
 }
 
+variable "output_s3_bucket_arn" {
+  description = "ARN of the S3 bucket where converted images are uploaded"
+  type        = string
+  default     = ""
+}
+
 variable "environment_variables" {
   description = "Environment variables for the Lambda function"
   type        = map(string)

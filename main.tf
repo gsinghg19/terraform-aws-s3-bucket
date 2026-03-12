@@ -50,6 +50,15 @@ module "website_s3_bucket" {
   }
 }
 
+module "image_s3_bucket" {
+  source      = "./modules/aws-s3-bucket-image-storage"
+  bucket_name = "guppy-converted-images-feb-2026"
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+  }
+}
 
 module "image_validator" {
   source = "./modules/lambda-image-validator"
@@ -60,8 +69,11 @@ module "image_validator" {
   s3_bucket_arn = module.website_s3_bucket.arn
   s3_bucket_id  = module.website_s3_bucket.name
 
+  output_s3_bucket_arn = module.image_s3_bucket.arn
+
   environment_variables = {
-    NODE_ENV = "production"
+    NODE_ENV             = "production"
+    OUTPUT_S3_BUCKET_ARN = module.image_s3_bucket.name
   }
 }
 

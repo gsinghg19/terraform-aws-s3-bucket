@@ -33,6 +33,20 @@ resource "aws_iam_role_policy" "lambda_s3" {
   })
 }
 
+# Write to output bucket
+resource "aws_iam_role_policy" "lambda_s3_output" {
+  name = "${var.function_name}-s3-output-access"
+  role = aws_iam_role.lambda_exec.id
+
+  policy = jsonencode({
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:PutObject"]
+      Resource = "${var.output_s3_bucket_arn}/*"
+    }]
+  })
+}
+
 # --- Package Lambda code ---
 data "archive_file" "lambda_zip" {
   type        = "zip"

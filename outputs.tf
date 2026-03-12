@@ -23,6 +23,16 @@ output "website_bucket_domain" {
   value       = module.website_s3_bucket.domain
 }
 
+output "image_bucket_arn" {
+  description = "ARN of the image bucket"
+  value       = module.image_s3_bucket.arn
+}
+
+output "image_bucket_name" {
+  description = "Name (id) of the image bucket"
+  value       = module.image_s3_bucket.name
+}
+
 output "lambda_function_name" {
   description = "Name of the image validator Lambda"
   value       = module.image_validator.function_name
