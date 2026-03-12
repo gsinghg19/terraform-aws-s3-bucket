@@ -38,8 +38,8 @@ flowchart TD
 
   VPC --> EC2
   U -->|HTTP static site| WEB
-  WEB -->|s3:ObjectCreated:*.webp| LAM
-  LAM -->|GetObject .webp| WEB
+  IMG -->|s3:ObjectCreated:*.webp| LAM
+  LAM -->|GetObject .webp| IMG
   LAM -->|PutObject .jpg| IMG
 ```
 
@@ -53,6 +53,7 @@ The root Terraform configuration wires together all modules in [main.tf](main.tf
 
 - `modules/aws-s3-bucket-static-websites`: Public S3 static website bucket
 - `modules/aws-s3-bucket-image-storage`: Private S3 image storage bucket
+- `modules/aws-s3-bucket-pdf-doc-storage`: Private S3 PDF/document storage bucket (in progress)
 - `modules/lambda-image-validator`: Lambda packaging, IAM role/policies, and S3 trigger
 
 ### Lambda source
@@ -132,18 +133,24 @@ terraform output -raw website_bucket_domain
 
 ## Trigger Image Conversion
 
-The Lambda trigger is configured on the website bucket for object-create events with `.webp` suffix.
+The Lambda trigger is configured on the image bucket for object-create events with `.webp` suffix. Lambda reads the uploaded `.webp`, converts it to JPEG using `sharp`, and writes the `.jpg` back into the same bucket.
 
-Upload a `.webp` file to the website bucket:
+Upload a `.webp` file directly to the image bucket:
 
 ```bash
-aws s3 cp ./example.webp "s3://$(terraform output -raw website_bucket_name)/example.webp"
+aws s3 cp ./example.webp "s3://$(terraform output -raw image_bucket_name)/example.webp"
 ```
 
-If Lambda succeeds, a `.jpg` version is uploaded to the output bucket from `image_bucket_name`.
+Or use the npm helper script:
 
 ```bash
-terraform output image_bucket_name
+npm run upload:image -- "./example.webp"
+```
+
+If Lambda succeeds, a `.jpg` version appears in the same image bucket:
+
+```bash
+aws s3 ls "s3://$(terraform output -raw image_bucket_name)/" --region us-west-2
 ```
 
 ## Tests
@@ -187,4 +194,4 @@ terraform destroy
 ## Notes
 
 - Bucket names in [main.tf](main.tf) are currently hardcoded. They must be globally unique in AWS.
-- The npm script `upload:image` in [package.json](package.json) uploads to a hardcoded bucket name.
+- The npm script `upload:image` in [package.json](package.json) targets the image bucket (`guppy-converted-images-feb-2026`). Usage: `npm run upload:image -- "/path/to/file.webp"`
