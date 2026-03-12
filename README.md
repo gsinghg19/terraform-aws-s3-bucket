@@ -2,11 +2,11 @@
 
 Terraform project that provisions:
 
-- A VPC and networking stack
-- Two EC2 instances
-- A public S3 static website bucket
-- A private S3 image storage bucket
-- A Lambda function that converts uploaded `.webp` images to `.jpg`
+- [x] A VPC and networking stack
+- [x] Two EC2 instances
+- [x] public S3 static website bucket
+- [x] A private S3 image storage bucket
+- [ ] A Lambda function that converts uploaded `.webp` images to `.jpg`
 
 ## Architecture Diagram
 
