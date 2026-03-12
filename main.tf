@@ -66,8 +66,8 @@ module "image_validator" {
   function_name = "image-validator"
   source_dir    = "${path.root}/lambda/image-validator/src"
 
-  s3_bucket_arn = module.website_s3_bucket.arn
-  s3_bucket_id  = module.website_s3_bucket.name
+  s3_bucket_arn = module.image_s3_bucket.arn
+  s3_bucket_id  = module.image_s3_bucket.name
 
   output_s3_bucket_arn = module.image_s3_bucket.arn
 
